@@ -1,0 +1,12 @@
+name: tech_access_app
+title: tech_access_app
+username:
+account: alisto
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2355469
+bundleId: 3189296
+url: https://alisto.shinyapps.io/tech_access_app/
+when: 1590455450.10786
+asMultiple: FALSE
+asStatic: FALSE

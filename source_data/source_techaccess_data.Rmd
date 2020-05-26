@@ -1,0 +1,113 @@
+---
+title: "Sourcing Data on Internet Access in USA"
+author: "Alissa Stover"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Purpose 
+
+This program loads data from the Federal Communications Commission on internet access in the USA. The data was manually downloaded from this URL: https://www.fcc.gov/general/form-477-county-data-internet-access-services 
+
+The data "Includes data on residential, non-residential, and total fixed Internet access connections over 200 kbps in at least one direction by county, and county households." 
+
+These data are exported to a folder containing an R Shiny app so that they can be used directly for the app. 
+
+## Prepare environment
+
+### Load packages
+
+```{r}
+# set directory & file name 
+dir <- "~/Documents/data_science/rshiny_tech-access/source_data"
+# run script to load saved file paths
+source(file.path(dir, "configs.R"))
+```
+
+```{r, message=FALSE}
+# run script to load packages 
+source(file.path(dir, "packages.R"))
+```
+
+### Load data
+
+```{r}
+# load data dictionary - on sheet 1
+data_dict <- read_excel(file.path(dir, raw_data), sheet = 1)
+```
+
+```{r}
+# show data dictionary 
+data_dict %>%
+  knitr::kable()
+```
+
+
+
+```{r}
+# load data - on sheet 2
+# "-9999" are coded as NAs 
+# from the data dictionary, we know that -9999 means data withheld to maintain firm confidentiality
+data <- readxl::read_excel(file.path(dir, raw_data), sheet = 2, na = "-9999")
+```
+
+## Inspect data 
+
+### Visual check of first 5 rows 
+
+```{r}
+# print first 5 rows 
+head(data) %>%
+  knitr::kable()
+```
+
+### Check datatypes
+
+We can see that we have 3,234 rows and 8 columns, which are as expected according to the data dictionary. 
+
+```{r}
+# print data type and first few values for each column 
+dplyr::glimpse(data) 
+```
+
+#### All variables appear to be the appropriate data type 
+
+The 8 variables along with their meaning and datatype are as follows: 
+
+* `countycode`: County FIPS code; string
+* `statename`: State name (complete); string
+* `countyname`: County name (complete); string
+* `consumer`: 	Residential Fixed High-Speed Connections over 200 kbps in at least one direction, in thousands; numeric (double)
+* `non_consumer`: Non-residential Fixed High-Speed Connections over 200 kbps in at least one direction, in thousands; numeric (double)
+* `all`: Total Fixed High-Speed Connections over 200 kbps in at least one direction, in thousands; numeric (double)
+* `hhs`: Households, in thousands (Census: 2013-2017 5-year ACS); numeric (double)
+* `ratio`: 	residential / hhs; numeric (double)
+
+## Merge to other datasets 
+
+One useful thing to with these data is plot them on a map. The `urbnmapr`package has useful helper functions for this, which require you to merge your data onto their dataset with geometric information. 
+
+```{r}
+# county-level data
+urbn_map_county <- urbnmapr::get_urbn_map(map = "counties", sf = TRUE) %>%
+  left_join(data, by = c("county_name" = "countyname"))
+# state-level data
+urbn_map_state <- urbnmapr::get_urbn_map(map = "states", sf = TRUE) %>%
+  left_join(data, by = c("state_name" = "statename"))
+
+```
+## Save data
+
+```{r}
+# save as RData objects
+save(data, file = file.path(dir, rda_data))
+save(urbn_map_county, file = file.path(dir, "../tech_access_app/urbn_map_county.rda"))
+save(urbn_map_state, file = file.path(dir, "../tech_access_app/urbn_map_state.rda"))
+```
